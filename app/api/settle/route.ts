@@ -1,5 +1,3 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route' // 导入 authOptions
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
