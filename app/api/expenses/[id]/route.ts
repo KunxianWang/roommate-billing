@@ -32,7 +32,7 @@ export async function DELETE(
 
     // 检查开销是否存在且未结算
     const expense = await prisma.expense.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!expense) {
@@ -59,7 +59,7 @@ export async function DELETE(
 
     // 删除开销（分摊记录会级联删除）
     await prisma.expense.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ message: '开销删除成功' })
@@ -104,7 +104,7 @@ export async function PUT(
 
     // 检查开销是否存在且未结算
     const expense = await prisma.expense.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!expense) {
@@ -136,12 +136,12 @@ export async function PUT(
     const updatedExpense = await prisma.$transaction(async (tx) => {
       // 删除旧的分摊记录
       await tx.expenseSplit.deleteMany({
-        where: { expenseId: params.id }
+        where: { expenseId: id }
       })
 
       // 更新开销并创建新的分摊记录
       return await tx.expense.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           amount,
           description,
@@ -189,7 +189,7 @@ export async function GET(
     }
 
     const expense = await prisma.expense.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         payer: true,
         splits: {

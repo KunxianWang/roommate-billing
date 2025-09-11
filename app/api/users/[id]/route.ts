@@ -35,8 +35,8 @@ export async function DELETE(
     const hasUnsettledExpenses = await prisma.expense.count({
       where: {
         OR: [
-          { payerId: params.id, settled: false },
-          { splits: { some: { userId: params.id } }, settled: false }
+          { payerId: id, settled: false },
+          { splits: { some: { userId:id } }, settled: false }
         ]
       }
     })
@@ -50,7 +50,7 @@ export async function DELETE(
 
     // 删除用户（级联删除会自动处理相关记录）
     await prisma.user.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ message: '用户删除成功' })
