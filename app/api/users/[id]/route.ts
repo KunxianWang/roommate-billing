@@ -1,11 +1,20 @@
+// 文件路径: app/api/users/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { getServerSession } from "next-auth"
 
+// 定义正确的上下文类型
+interface Context {
+  params: {
+    id: string
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: Context
 ) {
   try {
     const id = context.params.id;
@@ -19,7 +28,6 @@ export async function DELETE(
       )
     }
 
-    // 检查是否为管理员（可以设置第一个用户为管理员）
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email }
     })
@@ -31,12 +39,11 @@ export async function DELETE(
       )
     }
 
-    // 检查要删除的用户是否有未结算的账单
     const hasUnsettledExpenses = await prisma.expense.count({
       where: {
         OR: [
           { payerId: id, settled: false },
-          { splits: { some: { userId:id } }, settled: false }
+          { splits: { some: { userId: id } }, settled: false }
         ]
       }
     })
@@ -48,7 +55,6 @@ export async function DELETE(
       )
     }
 
-    // 删除用户（级联删除会自动处理相关记录）
     await prisma.user.delete({
       where: { id: id }
     })

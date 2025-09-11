@@ -1,12 +1,21 @@
-import { NextRequest,NextResponse } from 'next/server'
+// 文件路径: app/api/expenses/[id]/route.ts
+
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { getServerSession } from "next-auth"
 
+// 定义正确的上下文类型
+interface Context {
+  params: {
+    id: string
+  }
+}
+
 // 删除开销
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: Context
 ) {
   try {
     const id = context.params.id;
@@ -30,7 +39,6 @@ export async function DELETE(
       )
     }
 
-    // 检查开销是否存在且未结算
     const expense = await prisma.expense.findUnique({
       where: { id: id }
     })
@@ -49,7 +57,6 @@ export async function DELETE(
       )
     }
 
-    // 只有创建者可以删除
     if (expense.payerId !== currentUser.id) {
       return NextResponse.json(
         { error: '只有创建者可以删除此开销' },
@@ -57,7 +64,6 @@ export async function DELETE(
       )
     }
 
-    // 删除开销（分摊记录会级联删除）
     await prisma.expense.delete({
       where: { id: id }
     })
@@ -75,7 +81,7 @@ export async function DELETE(
 // 编辑开销
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: Context
 ) {
   try {
     const id = context.params.id;
@@ -102,7 +108,6 @@ export async function PUT(
     const body = await request.json()
     const { amount, description, involvedUserIds } = body
 
-    // 检查开销是否存在且未结算
     const expense = await prisma.expense.findUnique({
       where: { id: id }
     })
@@ -121,7 +126,6 @@ export async function PUT(
       )
     }
 
-    // 只有创建者可以编辑
     if (expense.payerId !== currentUser.id) {
       return NextResponse.json(
         { error: '只有创建者可以编辑此开销' },
@@ -129,17 +133,13 @@ export async function PUT(
       )
     }
 
-    // 计算新的分摊金额
     const splitAmount = amount / involvedUserIds.length
 
-    // 使用事务更新开销和分摊
     const updatedExpense = await prisma.$transaction(async (tx) => {
-      // 删除旧的分摊记录
       await tx.expenseSplit.deleteMany({
         where: { expenseId: id }
       })
 
-      // 更新开销并创建新的分摊记录
       return await tx.expense.update({
         where: { id: id },
         data: {
@@ -175,8 +175,8 @@ export async function PUT(
 
 // 获取单个开销详情
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: Context
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -189,7 +189,7 @@ export async function GET(
     }
 
     const expense = await prisma.expense.findUnique({
-      where: { id: id },
+      where: { id: context.params.id },
       include: {
         payer: true,
         splits: {
