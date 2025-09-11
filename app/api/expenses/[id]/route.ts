@@ -1,14 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest,NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { getServerSession } from "next-auth"
 
 // 删除开销
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
+    const id = context.params.id;
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
@@ -73,10 +74,11 @@ export async function DELETE(
 
 // 编辑开销
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
+    const id = context.params.id;
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {

@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: Request) {
   try {
     // 改为需要用户认证，而不是 CRON_SECRET
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
       return NextResponse.json(

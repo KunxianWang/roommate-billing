@@ -37,7 +37,7 @@ export async function GET() {
 // 标记结算为已完成
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
       return NextResponse.json(
