@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
-    // 验证 CRON_SECRET
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    // 改为需要用户认证，而不是 CRON_SECRET
+    const session = await getServerSession()
+    
+    if (!session?.user?.email) {
       return NextResponse.json(
-        { error: '未授权' },
+        { error: '请先登录' },
         { status: 401 }
       )
     }
@@ -16,7 +18,8 @@ export async function POST(request: Request) {
     const unsettledExpenses = await prisma.expense.findMany({
       where: { settled: false },
       include: {
-        splits: true
+        splits: true,
+        payer: true
       }
     })
 
@@ -77,16 +80,25 @@ export async function POST(request: Request) {
     }
 
     // 使用事务处理结算
-    await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 创建结算记录
+      let settlementRecords = []
       if (settlements.length > 0) {
-        await tx.settlement.createMany({
-          data: settlements.map(s => ({
-            fromUserId: s.from,
-            toUserId: s.to,
-            amount: s.amount
-          }))
-        })
+        settlementRecords = await Promise.all(
+          settlements.map(s => 
+            tx.settlement.create({
+              data: {
+                fromUserId: s.from,
+                toUserId: s.to,
+                amount: s.amount
+              },
+              include: {
+                fromUser: true,
+                toUser: true
+              }
+            })
+          )
+        )
       }
 
       // 标记所有开销为已结算
@@ -101,12 +113,17 @@ export async function POST(request: Request) {
           settledAt: new Date()
         }
       })
+
+      return {
+        settlements: settlementRecords,
+        expensesSettled: unsettledExpenses.length,
+        totalAmount: unsettledExpenses.reduce((sum, e) => sum + e.amount, 0)
+      }
     })
 
     return NextResponse.json({
       message: '结算成功',
-      settlements,
-      expensesSettled: unsettledExpenses.length
+      ...result
     })
   } catch (error) {
     console.error('结算失败:', error)
