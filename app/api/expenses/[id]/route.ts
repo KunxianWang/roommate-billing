@@ -175,6 +175,7 @@ export async function GET(
   context: Context
 ) {
   try {
+    const { id } = await context.params;
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
@@ -185,7 +186,7 @@ export async function GET(
     }
 
     const expense = await prisma.expense.findUnique({
-      where: { id: context.params.id },
+      where: { id:id },
       include: {
         payer: true,
         splits: {
