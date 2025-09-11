@@ -6,11 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { getServerSession } from "next-auth"
 
 // 定义正确的上下文类型
-interface Context {
-  params: {
-    id: string
-  }
-}
+interface Context { params: Promise<{ id: string }> }
 
 // 删除开销
 export async function DELETE(
@@ -18,7 +14,7 @@ export async function DELETE(
   context: Context
 ) {
   try {
-    const id = context.params.id;
+    const {id} = await context.params;
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
@@ -84,7 +80,7 @@ export async function PUT(
   context: Context
 ) {
   try {
-    const id = context.params.id;
+    const {id} =await context.params;
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {

@@ -6,18 +6,14 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { getServerSession } from "next-auth"
 
 // 定义正确的上下文类型
-interface Context {
-  params: {
-    id: string
-  }
-}
+interface Context { params: Promise<{ id: string }> }
 
 export async function DELETE(
   request: NextRequest,
   context: Context
 ) {
   try {
-    const id = context.params.id;
+    const {id} = await context.params;
 
     const session = await getServerSession(authOptions)
     
